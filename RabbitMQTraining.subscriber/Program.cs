@@ -12,20 +12,12 @@ internal class Program
         using var connection = factory.CreateConnection();
 
         var channel = connection.CreateModel();
-
-        //channel.QueueDeclare("hello-queue", true, false, false);
         
-        channel.ExchangeDeclare("logs-fanout", durable:true, type: ExchangeType.Fanout);
-        
-        var randomQueueName = "log-database-save-queue";  //channel.QueueDeclare().QueueName;
-        
-        channel.QueueDeclare(randomQueueName, true, false, false);
-  
-        channel.QueueBind(randomQueueName, "logs-fanout", "", null);
+       
 
         channel.BasicQos(0,1,false);
         var consumer = new EventingBasicConsumer(channel);
-
+        var queueName = "direct-queue-Critical";
         Console.WriteLine("Loglar dinleniyor...");
         
         consumer.Received+= (object sender, BasicDeliverEventArgs e)=>
@@ -35,9 +27,11 @@ internal class Program
             Thread.Sleep(1500);
             Console.WriteLine("Gelen Mesaj:" + message);
 
+            File.AppendAllText("log-critical-txt" , message + "\n");
+            
             channel.BasicAck(e.DeliveryTag,false);
         };
-        channel.BasicConsume(randomQueueName, false, consumer);
+        channel.BasicConsume(queueName, false, consumer);
         
         Console.ReadLine();
     }
