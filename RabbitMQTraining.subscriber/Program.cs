@@ -13,13 +13,18 @@ internal class Program
 
         var channel = connection.CreateModel();
        
+        channel.ExchangeDeclare("header-exchange", durable:true, type: ExchangeType.Headers);
 
         channel.BasicQos(0,1,false);
         var consumer = new EventingBasicConsumer(channel);
 
         var queueName = channel.QueueDeclare().QueueName;
-        var routeKey = "Info.#";
-        channel.QueueBind(queueName, "logs-topic", routeKey);
+
+        Dictionary<string, object> headers = new Dictionary<string, object>();
+        headers.Add("format", "pdf");
+        headers.Add("shape", "a4");
+        headers.Add("x-match", "any");
+        channel.QueueBind(queueName, "header-exchange" , string.Empty, headers);
         Console.WriteLine("Loglar dinleniyor...");
         
         consumer.Received+= (object sender, BasicDeliverEventArgs e)=>
@@ -28,8 +33,6 @@ internal class Program
             
             Thread.Sleep(1500);
             Console.WriteLine("Gelen Mesaj:" + message);
-
-            //File.AppendAllText("log-critical-txt" , message + "\n");
             
             channel.BasicAck(e.DeliveryTag,false);
         };
